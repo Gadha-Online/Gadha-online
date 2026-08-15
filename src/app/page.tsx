@@ -833,6 +833,10 @@ export default function Home() {
                   </div>
                 ))}
               </div>
+            ) : sessions.length === 0 ? (
+              <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-slate-200">
+                <p className="text-sm text-text-muted">No active sessions scheduled currently.</p>
+              </div>
             ) : (
               <div className="flex gap-6 overflow-x-auto pb-6 snap-x snap-mandatory premium-scrollbar">
                 {sessions.map((s) => (
