@@ -502,20 +502,25 @@ function MentorsPageContent() {
             {currentMentors.map((m) => (
               <div
                 key={m.id}
-                className="bg-white border border-border-subtle rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
+                className="relative bg-white border border-border-subtle rounded-2xl overflow-hidden hover:shadow-lg transition-all duration-300 flex flex-col justify-between"
               >
-                <div className="p-6 flex-1 flex flex-col justify-between">
+                {/* Rating badge, top-right */}
+                <span className="absolute top-3 right-3 inline-flex items-center gap-0.5 text-[11px] font-bold text-accent bg-accent/10 px-1.5 py-0.5 rounded-full">
+                  <IconStar className="w-3 h-3 fill-accent text-accent" /> {m.rating}
+                </span>
+
+                <div className="p-4 flex-1 flex flex-col justify-between">
                   <div>
                     {/* Card Header Profile Block */}
-                    <div className="flex items-start gap-4 mb-4">
+                    <div className="flex items-start gap-3 mb-3 pr-10">
                       <div
-                        className="w-14 h-14 rounded-full flex items-center justify-center font-heading text-xl font-bold text-accent shadow-inner shrink-0"
+                        className="w-11 h-11 rounded-full flex items-center justify-center font-heading text-base font-bold text-accent shadow-inner shrink-0"
                         style={{ backgroundColor: m.avatarBg || "#1B3A6B" }}
                       >
                         {m.avatarText}
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-heading text-base font-bold text-primary flex items-center gap-1.5 truncate">
+                        <h3 className="font-heading text-sm font-bold text-primary flex items-center gap-1.5 truncate">
                           {m.name}
                           <span className="inline-flex items-center gap-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-150 shrink-0">
                             Verified
@@ -531,7 +536,7 @@ function MentorsPageContent() {
                     </div>
 
                     {/* Subject/Expertise Badges */}
-                    <div className="flex flex-wrap gap-1.5 mb-3">
+                    <div className="flex flex-wrap gap-1.5 mb-2">
                       {m.expertise.map((subject: string, idx: number) => (
                         <span key={idx} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-badge-bg text-badge-text border border-badge-border">
                           {subject}
@@ -540,14 +545,14 @@ function MentorsPageContent() {
                     </div>
 
                     {/* Bio snippet */}
-                    <p className="text-xs text-text-muted/85 leading-relaxed line-clamp-3 mb-4 min-h-[54px]">
+                    <p className="text-xs text-text-muted/85 leading-relaxed line-clamp-2 mb-3 min-h-[36px]">
                       {m.bio || `${m.name} is a verified Gadha Online educator specialized in ${m.subject} tutoring.`}
                     </p>
                   </div>
 
                   <div>
                     {/* Stats block */}
-                    <div className="grid grid-cols-2 gap-2 py-3 border-t border-b border-border-subtle mb-4 text-center">
+                    <div className="grid grid-cols-2 gap-2 py-2 border-t border-b border-border-subtle mb-3 text-center">
                       <div>
                         <div className="text-[10px] text-text-muted font-medium uppercase tracking-wider">Courses</div>
                         <div className="text-xs font-bold text-primary">{m.courses}+</div>
@@ -558,15 +563,9 @@ function MentorsPageContent() {
                       </div>
                     </div>
 
-                    <div className="flex items-center mb-4">
-                      <span className="text-xs font-bold text-accent flex items-center gap-0.5">
-                        <IconStar className="w-3.5 h-3.5 fill-accent text-accent" /> {m.rating}
-                      </span>
-                    </div>
-
                     <a
                       href={`/mentors/${m.id}`}
-                      className="block w-full text-xs font-semibold py-2.5 rounded-lg bg-secondary text-white hover:bg-secondary/90 transition-colors cursor-pointer text-center"
+                      className="block w-full text-xs font-semibold py-2 rounded-lg bg-secondary text-white hover:bg-secondary/90 transition-colors cursor-pointer text-center"
                     >
                       View Profile
                     </a>
