@@ -35,9 +35,14 @@ function MentorsPageContent() {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const [showFilterPanel, setShowFilterPanel] = useState(false);
 
+  // Filters: draft (edited inside the panel) vs. applied (what's actually filtered)
   const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]);
   const [selectedExperiences, setSelectedExperiences] = useState<string[]>([]);
   const [selectedRating, setSelectedRating] = useState<number | null>(null);
+
+  const [appliedSubjects, setAppliedSubjects] = useState<string[]>([]);
+  const [appliedExperiences, setAppliedExperiences] = useState<string[]>([]);
+  const [appliedRating, setAppliedRating] = useState<number | null>(null);
 
   const [sortOption, setSortOption] = useState("Most popular");
   const initialPage = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -73,15 +78,32 @@ function MentorsPageContent() {
     loadData();
   }, []);
 
-  // Sync subjects with tab selection
-  const handleTabSelect = (tab: string) => {
-    if (tab === "All mentors") {
-      setSelectedSubjects([]);
-    } else {
-      setSelectedSubjects(prev =>
-        prev.includes(tab) ? prev.filter(s => s !== tab) : [...prev, tab]
-      );
+  const openFilterPanel = () => {
+    if (!showFilterPanel) {
+      // Seed the draft with whatever is currently applied so the panel reflects reality
+      setSelectedSubjects(appliedSubjects);
+      setSelectedExperiences(appliedExperiences);
+      setSelectedRating(appliedRating);
     }
+    setShowFilterPanel(prev => !prev);
+  };
+
+  const applyFilters = () => {
+    setAppliedSubjects(selectedSubjects);
+    setAppliedExperiences(selectedExperiences);
+    setAppliedRating(selectedRating);
+    setCurrentPage(1);
+    setShowFilterPanel(false);
+  };
+
+  // Tab strip is a quick shortcut outside the filter panel, so it applies immediately
+  // and keeps the panel's draft state in sync for whenever it's next opened.
+  const handleTabSelect = (tab: string) => {
+    const next = tab === "All mentors"
+      ? []
+      : appliedSubjects.includes(tab) ? appliedSubjects.filter(s => s !== tab) : [...appliedSubjects, tab];
+    setAppliedSubjects(next);
+    setSelectedSubjects(next);
     setCurrentPage(1);
   };
 
@@ -89,30 +111,38 @@ function MentorsPageContent() {
     setSelectedSubjects(prev =>
       prev.includes(subject) ? prev.filter(s => s !== subject) : [...prev, subject]
     );
-    setCurrentPage(1);
   };
 
   const handleExperienceCheckbox = (expRange: string) => {
     setSelectedExperiences(prev =>
       prev.includes(expRange) ? prev.filter(e => e !== expRange) : [...prev, expRange]
     );
-    setCurrentPage(1);
   };
 
   const resetAllFilters = () => {
     setSelectedSubjects([]);
     setSelectedExperiences([]);
     setSelectedRating(null);
+    setAppliedSubjects([]);
+    setAppliedExperiences([]);
+    setAppliedRating(null);
     setSearchQuery("");
     setCurrentPage(1);
   };
 
   const removeSubjectFilter = (sub: string) => {
+    setAppliedSubjects(prev => prev.filter(s => s !== sub));
     setSelectedSubjects(prev => prev.filter(s => s !== sub));
   };
 
   const removeExperienceFilter = (exp: string) => {
+    setAppliedExperiences(prev => prev.filter(e => e !== exp));
     setSelectedExperiences(prev => prev.filter(e => e !== exp));
+  };
+
+  const removeRatingFilter = () => {
+    setAppliedRating(null);
+    setSelectedRating(null);
   };
 
   // Check if a mentor has experience within a range
@@ -136,19 +166,19 @@ function MentorsPageContent() {
     }
 
     // Subject/Category filter
-    if (selectedSubjects.length > 0) {
-      const matchesSubject = m.expertise.some((s: string) => selectedSubjects.includes(s));
+    if (appliedSubjects.length > 0) {
+      const matchesSubject = m.expertise.some((s: string) => appliedSubjects.includes(s));
       if (!matchesSubject) return false;
     }
 
     // Experience filter
-    if (selectedExperiences.length > 0) {
-      const matchesExp = selectedExperiences.some(range => matchesExperienceRange(m.experience, range));
+    if (appliedExperiences.length > 0) {
+      const matchesExp = appliedExperiences.some(range => matchesExperienceRange(m.experience, range));
       if (!matchesExp) return false;
     }
 
     // Rating filter
-    if (selectedRating !== null && m.rating < selectedRating) return false;
+    if (appliedRating !== null && m.rating < appliedRating) return false;
 
     return true;
   });
@@ -170,9 +200,9 @@ function MentorsPageContent() {
 
   // Active filter count
   const activeFilterCount =
-    selectedSubjects.length +
-    selectedExperiences.length +
-    (selectedRating !== null ? 1 : 0);
+    appliedSubjects.length +
+    appliedExperiences.length +
+    (appliedRating !== null ? 1 : 0);
 
   // Counts for checkboxes (calculated on raw active mentors list)
   const getCountBySubject = (sub: string) => mentors.filter(m => m.expertise.includes(sub)).length;
@@ -241,7 +271,7 @@ function MentorsPageContent() {
               {/* Filter Button next to search button */}
               <div className="relative">
                 <button
-                  onClick={() => setShowFilterPanel(!showFilterPanel)}
+                  onClick={openFilterPanel}
                   className="relative w-10 h-10 rounded-xl border border-border-subtle bg-slate-50 flex items-center justify-center cursor-pointer hover:border-secondary hover:bg-[#F0F6FF] transition-all focus:outline-none"
                   title="Filters"
                 >
@@ -326,10 +356,7 @@ function MentorsPageContent() {
                             {[4.5, 4.0, 3.0].map((rating) => (
                               <button
                                 key={rating}
-                                onClick={() => {
-                                  setSelectedRating(selectedRating === rating ? null : rating);
-                                  setCurrentPage(1);
-                                }}
+                                onClick={() => setSelectedRating(selectedRating === rating ? null : rating)}
                                 className={`flex items-center gap-2.5 text-xs w-full text-left py-2 px-3 rounded-lg border transition-colors cursor-pointer ${
                                   selectedRating === rating
                                     ? "bg-[#F0F6FF] border-secondary/50 text-secondary font-bold"
@@ -352,7 +379,7 @@ function MentorsPageContent() {
                           Clear all
                         </button>
                         <button
-                          onClick={() => setShowFilterPanel(false)}
+                          onClick={applyFilters}
                           className="flex-1 text-xs font-bold py-2.5 bg-secondary text-white rounded-xl hover:bg-secondary/90 cursor-pointer text-center shadow-md"
                         >
                           Apply
@@ -377,7 +404,7 @@ function MentorsPageContent() {
                 key={tab}
                 onClick={() => handleTabSelect(tab)}
                 className={`text-xs font-semibold px-4 py-2 rounded-full border transition-all cursor-pointer whitespace-nowrap ${
-                  (tab === "All mentors" ? selectedSubjects.length === 0 : selectedSubjects.includes(tab))
+                  (tab === "All mentors" ? appliedSubjects.length === 0 : appliedSubjects.includes(tab))
                     ? "bg-primary text-white border-primary"
                     : "bg-white text-text-muted border-border-subtle hover:bg-slate-50"
                 }`}
@@ -405,7 +432,7 @@ function MentorsPageContent() {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 min-h-[32px]">
           <div className="flex flex-wrap items-center gap-2">
             {/* Subject pills */}
-            {selectedSubjects.map((sub) => (
+            {appliedSubjects.map((sub) => (
               <div key={sub} className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-badge-bg text-badge-text border border-badge-border">
                 {sub}
                 <button onClick={() => removeSubjectFilter(sub)} className="hover:text-red-600 transition-colors">
@@ -413,9 +440,9 @@ function MentorsPageContent() {
                 </button>
               </div>
             ))}
-            
+
             {/* Experience pills */}
-            {selectedExperiences.map((exp) => (
+            {appliedExperiences.map((exp) => (
               <div key={exp} className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-badge-bg text-badge-text border border-badge-border">
                 {exp}
                 <button onClick={() => removeExperienceFilter(exp)} className="hover:text-red-600 transition-colors">
@@ -425,10 +452,10 @@ function MentorsPageContent() {
             ))}
 
             {/* Rating pill */}
-            {selectedRating !== null && (
+            {appliedRating !== null && (
               <div className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1 rounded-full bg-badge-bg text-badge-text border border-badge-border">
-                Rating: ★ {selectedRating}+
-                <button onClick={() => setSelectedRating(null)} className="hover:text-red-600 transition-colors">
+                Rating: ★ {appliedRating}+
+                <button onClick={removeRatingFilter} className="hover:text-red-600 transition-colors">
                   <IconX className="w-3 h-3" />
                 </button>
               </div>
