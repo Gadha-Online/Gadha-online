@@ -116,7 +116,7 @@ export async function getHomepageData() {
   // 4. Get Active Sessions
   const { data: dbSessions } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name, avatar_url))")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name, avatar_url))")
     .eq("status", "Active")
     .order("created_at", { ascending: false });
 
@@ -381,7 +381,7 @@ export async function getAdminData() {
       parent:parents(profile:profiles(full_name, email)),
       student:students(profile:profiles(full_name, email)),
       course:courses(title, mentor_id, mentor:mentors(profile:profiles(full_name))),
-      session:sessions(title, mentor_id, mentor:mentors(profile:profiles(full_name)))
+      session:sessions(title, mentor_id, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name)))
     `)
     .order("created_at", { ascending: false });
 
@@ -518,7 +518,7 @@ export async function getAdminData() {
   // 5. Get All Sessions
   const { data: dbSessions } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name, avatar_url))")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name, avatar_url))")
     .order("created_at", { ascending: false });
 
   // Every mentor eligible to teach each session (a session can have more
@@ -1227,7 +1227,7 @@ export async function getSubjectDetails(name: string) {
 
   const { data: dbSessions } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name, avatar_url))")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name, avatar_url))")
     .eq("subject", name)
     .order("created_at", { ascending: false });
 
@@ -2967,7 +2967,7 @@ export async function getSessionsPageData() {
   const supabase = await createClient();
   const { data: dbSessions, error } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name, avatar_url))")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name, avatar_url))")
     .eq("status", "Active")
     .order("created_at", { ascending: false });
 
@@ -3022,7 +3022,7 @@ export async function getSessionDetails(id: string) {
   // 1. Fetch Session details
   const { data: s, error } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name, avatar_url, email), expertise, rating, qualification, experience, bio)")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name, avatar_url, email), expertise, rating, qualification, experience, bio)")
     .eq("id", id)
     .single();
 
@@ -3096,7 +3096,7 @@ export async function getSessionDetails(id: string) {
   // 2. Fetch Related Sessions (same subject, excluding current session)
   const { data: dbRelated } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name))")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name))")
     .eq("status", "Active")
     .eq("subject", s.subject)
     .neq("id", id)
@@ -3120,7 +3120,7 @@ export async function getSessionDetails(id: string) {
   if (relatedMapped.length < 3) {
     const { data: dbBackup } = await supabase
       .from("sessions")
-      .select("*, mentor:mentors(profile:profiles(full_name))")
+      .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name))")
       .eq("status", "Active")
       .neq("id", id)
       .limit(3 - relatedMapped.length);
@@ -3260,7 +3260,7 @@ export async function getMentorDetailsData(mentorId: string) {
   // 3. Fetch Mentor Sessions
   const { data: dbSessions } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name, avatar_url))")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name, avatar_url))")
     .eq("mentor_id", mentorId)
     .eq("status", "Active")
     .order("created_at", { ascending: false });
@@ -3719,7 +3719,7 @@ export async function getParentBookings() {
       course_id,
       created_at,
       student:students(profile:profiles(full_name)),
-      session:sessions(title, type, price, subject, color_bg, icon_name, mentor:mentors(profile:profiles(full_name))),
+      session:sessions(title, type, price, subject, color_bg, icon_name, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name))),
       course:courses(title, format, price, subject, batch_start_date, batch_end_date, duration_days, mentor:mentors(profile:profiles(full_name)))
     `)
     .eq("parent_id", user.id);
@@ -3832,7 +3832,7 @@ export async function getChildOverviewStats(childId: string) {
     .from("bookings")
     .select(`
       id, status, payment_status, amount_paid, student_id, session_id, course_id,
-      session:sessions(title, subject, icon_name, mentor:mentors(profile:profiles(full_name))),
+      session:sessions(title, subject, icon_name, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name))),
       course:courses(title, subject, mentor:mentors(profile:profiles(full_name)))
     `)
     .eq("student_id", childId)
@@ -4066,7 +4066,7 @@ export async function getChildEnrolledMentors(childId: string) {
     .from("bookings")
     .select(`
       id, session_id, course_id, status,
-      session:sessions(title, subject, icon_name, mentor:mentors(id, profile:profiles(full_name, avatar_url))),
+      session:sessions(title, subject, icon_name, mentor:mentors!sessions_mentor_id_fkey(id, profile:profiles(full_name, avatar_url))),
       course:courses(title, subject, mentor:mentors(id, profile:profiles(full_name, avatar_url)))
     `)
     .eq("student_id", childId)
@@ -4521,7 +4521,7 @@ export async function getStudentMentors() {
     .from("bookings")
     .select(`
       session_id, course_id, status,
-      session:sessions(title, subject, mentor:mentors(id, profile:profiles(full_name))),
+      session:sessions(title, subject, mentor:mentors!sessions_mentor_id_fkey(id, profile:profiles(full_name))),
       course:courses(title, subject, mentor:mentors(id, profile:profiles(full_name)))
     `)
     .eq("student_id", studentId)
@@ -7170,7 +7170,7 @@ export async function getStudentBookingsWithJoinUrls(studentId: string) {
       session_id,
       course_id,
       created_at,
-      session:sessions(title, type, price, subject, join_url, mentor:mentors(profile:profiles(full_name))),
+      session:sessions(title, type, price, subject, join_url, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name))),
       course:courses(title, format, price, subject, join_url, mentor:mentors(profile:profiles(full_name)))
     `)
     .eq("student_id", studentId)
@@ -7367,7 +7367,7 @@ export async function getStudentBookingDashboardDetails(bookingId: string) {
       session_id,
       course_id,
       created_at,
-      session:sessions(title, type, price, subject, join_url, mentor:mentors(id, profile:profiles(full_name))),
+      session:sessions(title, type, price, subject, join_url, mentor:mentors!sessions_mentor_id_fkey(id, profile:profiles(full_name))),
       course:courses(title, format, price, subject, join_url, mentor:mentors(id, profile:profiles(full_name)))
     `)
     .eq("id", bookingId)
@@ -7707,7 +7707,7 @@ export async function getAdminSessionDetails(sessionId: string) {
   // 1. Fetch Session details
   const { data: session, error } = await supabase
     .from("sessions")
-    .select("*, mentor:mentors(profile:profiles(full_name, avatar_url, email), qualification, experience, rating)")
+    .select("*, mentor:mentors!sessions_mentor_id_fkey(profile:profiles(full_name, avatar_url, email), qualification, experience, rating)")
     .eq("id", sessionId)
     .single();
 

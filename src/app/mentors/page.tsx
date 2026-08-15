@@ -462,28 +462,29 @@ function MentorsPageContent() {
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-10 w-full">
             {[1, 2, 3].map((i) => (
-              <div key={i} className="bg-white border border-border-subtle rounded-2xl overflow-hidden p-6 space-y-4">
-                <div className="flex items-start gap-4">
-                  <div className="w-14 h-14 rounded-full bg-slate-100 animate-shimmer shrink-0"></div>
+              <div key={i} className="relative bg-white border border-border-subtle rounded-2xl overflow-hidden p-4 space-y-3">
+                <div className="absolute top-3 right-3 h-5 w-10 bg-slate-100 rounded-full animate-shimmer"></div>
+                <div className="flex items-start gap-3 pr-10">
+                  <div className="w-11 h-11 rounded-full bg-slate-100 animate-shimmer shrink-0"></div>
                   <div className="space-y-1.5 flex-1 min-w-0">
-                    <div className="h-5 w-3/4 bg-slate-200 rounded animate-shimmer"></div>
-                    <div className="h-4 w-full bg-slate-100 rounded animate-shimmer"></div>
+                    <div className="h-4 w-3/4 bg-slate-200 rounded animate-shimmer"></div>
+                    <div className="h-3 w-full bg-slate-100 rounded animate-shimmer"></div>
                     <div className="h-3 w-1/3 bg-slate-100 rounded animate-shimmer"></div>
                   </div>
                 </div>
-                <div className="flex gap-1.5 pt-2">
+                <div className="flex gap-1.5">
                   <div className="h-4 w-16 bg-slate-100 rounded animate-shimmer"></div>
                   <div className="h-4 w-16 bg-slate-100 rounded animate-shimmer"></div>
                 </div>
-                <div className="space-y-2 pt-2">
+                <div className="space-y-2">
                   <div className="h-3 w-full bg-slate-100 rounded animate-shimmer"></div>
                   <div className="h-3 w-5/6 bg-slate-100 rounded animate-shimmer"></div>
                 </div>
-                <div className="border-t border-border-subtle pt-4 flex items-center justify-between">
-                  <div className="h-4 w-16 bg-slate-100 rounded animate-shimmer"></div>
-                  <div className="h-6 w-16 bg-slate-200 rounded animate-shimmer"></div>
+                <div className="border-t border-b border-border-subtle py-2 flex items-center justify-around">
+                  <div className="h-3.5 w-12 bg-slate-100 rounded animate-shimmer"></div>
+                  <div className="h-3.5 w-12 bg-slate-100 rounded animate-shimmer"></div>
                 </div>
-                <div className="h-10 w-full bg-slate-250 rounded-lg animate-shimmer"></div>
+                <div className="h-9 w-full bg-slate-250 rounded-lg animate-shimmer"></div>
               </div>
             ))}
           </div>
