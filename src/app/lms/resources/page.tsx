@@ -13,6 +13,7 @@ interface ResourceItem {
   type: "pdf" | "doc" | "image" | "link";
   subject: string;
   mentor: string;
+  courseName?: string | null;
   date: string;
   size?: string;
   url?: string;
@@ -59,7 +60,7 @@ function ResourceCard({ r }: { r: ResourceItem }) {
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-[13px] font-bold text-[#1B3A6B] truncate">{r.name}</p>
-        <p className="text-[11px] text-[#4A5A7A] mt-0.5">{r.subject} · {r.mentor} · {r.date}</p>
+        <p className="text-[11px] text-[#4A5A7A] mt-0.5">{r.subject} · {r.courseName ? r.courseName : r.mentor} · {r.date}</p>
         {r.size && <p className="text-[10px] text-[#4A5A7A]">{r.size}</p>}
       </div>
       {r.url ? (

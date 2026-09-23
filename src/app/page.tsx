@@ -1301,9 +1301,9 @@ export default function Home() {
               </button>
 
               {t.media_url ? (
-                <div className="relative w-full max-h-[60vh] bg-slate-900 flex items-center justify-center overflow-hidden">
+                <div className="relative w-full aspect-[4/3] max-h-[60vh] bg-slate-900 flex items-center justify-center overflow-hidden">
                   {t.media_type === "video" ? (
-                    <video src={t.media_url} className="max-h-[60vh] w-full object-contain" controls autoPlay />
+                    <video src={t.media_url} className="max-h-[60vh] w-full h-full object-contain" controls autoPlay />
                   ) : (
                     <Image src={t.media_url} alt={t.student_name} fill className="object-contain" />
                   )}

@@ -8,12 +8,15 @@ import {
 import {
   getMentorResources,
   getMentorStudents,
+  getMentorCourseOptions,
   createResource,
-  deleteResource
+  deleteResource,
+  uploadResourceFile
 } from "@/app/actions";
 
 type Resource = Awaited<ReturnType<typeof getMentorResources>>[number];
 type StudentInfo = Awaited<ReturnType<typeof getMentorStudents>>[number];
+type CourseOption = Awaited<ReturnType<typeof getMentorCourseOptions>>[number];
 
 const ICON_MAP = {
   pdf:   { icon: IconFileTypePdf, bg: "#fee2e2", color: "#E24B4A" },
@@ -43,10 +46,12 @@ export default function MentorResourcesPage() {
   const [loading, setLoading] = useState(true);
   const [resources, setResources] = useState<Resource[]>([]);
   const [students, setStudents] = useState<StudentInfo[]>([]);
+  const [courses, setCourses] = useState<CourseOption[]>([]);
 
   // Modal State
   const [isOpen, setIsOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [form, setForm] = useState({
     name: "",
     type: "document" as "pdf" | "video" | "link" | "document",
@@ -54,16 +59,19 @@ export default function MentorResourcesPage() {
     url: "",
     size: "",
     studentId: "",
+    courseId: "",
   });
 
   const loadData = async () => {
     try {
-      const [r, s] = await Promise.all([
+      const [r, s, c] = await Promise.all([
         getMentorResources(),
         getMentorStudents(),
+        getMentorCourseOptions(),
       ]);
       setResources(r || []);
       setStudents(s || []);
+      setCourses(c || []);
     } catch (e) {
       console.error(e);
     } finally {
@@ -80,15 +88,30 @@ export default function MentorResourcesPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      // Map 'video' to 'link' if database resource_type expects it (since type enum is pdf, video, link, document)
-      const mappedType = form.type;
+      let url = form.url;
+      let size = form.size;
+
+      if (form.type !== "link") {
+        if (!selectedFile) {
+          alert("Please choose a file to upload");
+          setSubmitting(false);
+          return;
+        }
+        const fd = new FormData();
+        fd.set("file", selectedFile);
+        const { publicUrl } = await uploadResourceFile(fd);
+        url = publicUrl;
+        size = `${(selectedFile.size / (1024 * 1024)).toFixed(1)} MB`;
+      }
+
       await createResource({
         name: form.name,
-        type: mappedType,
+        type: form.type,
         subject: form.subject,
-        url: form.url,
-        size: form.size || undefined,
+        url,
+        size: size || undefined,
         studentId: form.studentId || undefined,
+        courseId: form.courseId || undefined,
       });
       setIsOpen(false);
       loadData();
@@ -128,7 +151,9 @@ export default function MentorResourcesPage() {
               url: "",
               size: "",
               studentId: "",
+              courseId: "",
             });
+            setSelectedFile(null);
             setIsOpen(true);
           }}
           className="inline-flex items-center gap-1.5 text-xs font-bold px-4 py-2.5 rounded-xl bg-[#2F7FE8] text-white hover:bg-[#1B3A6B] hover:shadow-md transition-all cursor-pointer focus:outline-none"
@@ -176,7 +201,7 @@ export default function MentorResourcesPage() {
                   <div className="min-w-0">
                     <p className="text-[13px] font-bold text-[#1B3A6B] truncate">{r.name}</p>
                     <p className="text-[11px] text-[#4A5A7A] mt-0.5">
-                      {r.subject} · {r.studentName} · {dateStr}
+                      {r.subject} · {r.courseName || r.studentName} · {dateStr}
                     </p>
                     {r.size && <p className="text-[10px] text-[#9BA8C0] mt-0.5">{r.size}</p>}
                   </div>
@@ -244,6 +269,28 @@ export default function MentorResourcesPage() {
                 </select>
               </div>
 
+              {/* Target Course */}
+              <div>
+                <label className="block text-[11px] font-bold text-[#1B3A6B] uppercase tracking-wider mb-1.5">
+                  Course (Optional)
+                </label>
+                <select
+                  value={form.courseId}
+                  onChange={(e) => setForm({ ...form, courseId: e.target.value })}
+                  className="w-full text-[13px] px-3.5 py-2.5 rounded-xl border border-[#D0DCF5] bg-white text-[#1B3A6B] focus:outline-none focus:border-[#2F7FE8] font-semibold"
+                >
+                  <option value="">Not tied to a specific course</option>
+                  {courses.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.title}
+                    </option>
+                  ))}
+                </select>
+                <p className="text-[10px] text-[#9BA8C0] mt-1">
+                  Scope this material to only the students enrolled in this course.
+                </p>
+              </div>
+
               {/* Resource Name */}
               <div>
                 <label className="block text-[11px] font-bold text-[#1B3A6B] uppercase tracking-wider mb-1.5">
@@ -296,34 +343,38 @@ export default function MentorResourcesPage() {
                 </select>
               </div>
 
-              {/* URL */}
-              <div>
-                <label className="block text-[11px] font-bold text-[#1B3A6B] uppercase tracking-wider mb-1.5">
-                  Resource Link / URL
-                </label>
-                <input
-                  type="url"
-                  required
-                  placeholder="https://drive.google.com/..."
-                  value={form.url}
-                  onChange={(e) => setForm({ ...form, url: e.target.value })}
-                  className="w-full text-[13px] px-3.5 py-2.5 rounded-xl border border-[#D0DCF5] text-[#1B3A6B] focus:outline-none focus:border-[#2F7FE8] font-semibold"
-                />
-              </div>
-
-              {/* Optional size */}
-              {form.type !== "link" && (
+              {/* File upload or link, depending on type */}
+              {form.type === "link" ? (
                 <div>
                   <label className="block text-[11px] font-bold text-[#1B3A6B] uppercase tracking-wider mb-1.5">
-                    File Size (Optional)
+                    Resource Link / URL
                   </label>
                   <input
-                    type="text"
-                    placeholder="e.g. 1.2 MB or 45 pages"
-                    value={form.size}
-                    onChange={(e) => setForm({ ...form, size: e.target.value })}
+                    type="url"
+                    required
+                    placeholder="https://drive.google.com/..."
+                    value={form.url}
+                    onChange={(e) => setForm({ ...form, url: e.target.value })}
                     className="w-full text-[13px] px-3.5 py-2.5 rounded-xl border border-[#D0DCF5] text-[#1B3A6B] focus:outline-none focus:border-[#2F7FE8] font-semibold"
                   />
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-[11px] font-bold text-[#1B3A6B] uppercase tracking-wider mb-1.5">
+                    Upload File {form.type === "pdf" ? "(PDF)" : ""}
+                  </label>
+                  <input
+                    type="file"
+                    required
+                    accept={form.type === "pdf" ? "application/pdf" : undefined}
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="w-full text-[12px] px-3 py-2 rounded-xl border border-[#D0DCF5] text-[#1B3A6B] focus:outline-none focus:border-[#2F7FE8] font-semibold file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[11px] file:font-bold file:bg-[#F5F8FF] file:text-[#2F7FE8]"
+                  />
+                  {selectedFile && (
+                    <p className="text-[10px] text-[#4A5A7A] mt-1.5">
+                      {selectedFile.name} · {(selectedFile.size / (1024 * 1024)).toFixed(1)} MB
+                    </p>
+                  )}
                 </div>
               )}
 

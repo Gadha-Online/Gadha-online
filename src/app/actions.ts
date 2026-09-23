@@ -4982,7 +4982,8 @@ export async function getMentorResources() {
       *,
       student:students(
         profile:profiles(full_name)
-      )
+      ),
+      course:courses(title)
     `)
     .eq("mentor_id", user.id)
     .order("created_at", { ascending: false });
@@ -4991,7 +4992,70 @@ export async function getMentorResources() {
   return (resources || []).map((r) => ({
     ...r,
     studentName: r.student?.profile?.full_name || "All Students",
+    courseName: r.course?.title || null,
   }));
+}
+
+export async function getMentorCourseOptions() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const { data: courses, error } = await supabase
+    .from("courses")
+    .select("id, title, subject")
+    .eq("mentor_id", user.id)
+    .order("title", { ascending: true });
+
+  if (error) throw new Error(error.message);
+  return courses || [];
+}
+
+export async function uploadResourceFile(formData: FormData) {
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("No file provided");
+
+  const supabase = createAdminClient();
+
+  // Ensure bucket exists
+  const { data: buckets, error: listError } = await supabase.storage.listBuckets();
+  if (listError) {
+    console.error("Storage list error:", listError);
+  }
+
+  const bucketName = "resource-files";
+  const bucketExists = buckets?.some(b => b.name === bucketName);
+
+  if (!bucketExists) {
+    const { error: createError } = await supabase.storage.createBucket(bucketName, {
+      public: true,
+      fileSizeLimit: 26214400, // 25MB
+    });
+    if (createError) {
+      console.warn("Storage bucket creation error or warning:", createError);
+    }
+  }
+
+  // Upload file
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+
+  const buffer = Buffer.from(await file.arrayBuffer());
+
+  const { error } = await supabase.storage
+    .from(bucketName)
+    .upload(fileName, buffer, {
+      contentType: file.type,
+      duplex: "half",
+    });
+
+  if (error) {
+    throw new Error(`Upload failed: ${error.message}`);
+  }
+
+  // Get public URL
+  const { data: { publicUrl } } = supabase.storage.from(bucketName).getPublicUrl(fileName);
+  return { publicUrl };
 }
 
 export async function createResource(data: {
@@ -5001,6 +5065,7 @@ export async function createResource(data: {
   url: string;
   size?: string;
   studentId?: string;
+  courseId?: string;
 }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -5012,6 +5077,7 @@ export async function createResource(data: {
       {
         mentor_id: user.id,
         student_id: data.studentId || null,
+        course_id: data.courseId || null,
         name: data.name,
         type: data.type,
         subject: data.subject,
@@ -7327,7 +7393,8 @@ export async function getStudentResources() {
       *,
       mentor:mentors(
         profile:profiles(full_name)
-      )
+      ),
+      course:courses(title)
     `)
     .order("created_at", { ascending: false });
 
@@ -7339,6 +7406,7 @@ export async function getStudentResources() {
     type: r.type === "video" ? "link" : r.type,
     subject: r.subject,
     mentor: r.mentor?.profile?.full_name || "Unknown Mentor",
+    courseName: r.course?.title || null,
     date: new Date(r.created_at).toLocaleDateString("en-IN", {
       day: "numeric",
       month: "short",

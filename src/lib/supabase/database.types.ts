@@ -1033,6 +1033,7 @@ export type Database = {
       }
       resources: {
         Row: {
+          course_id: string | null
           created_at: string
           id: string
           mentor_id: string
@@ -1044,6 +1045,7 @@ export type Database = {
           url: string
         }
         Insert: {
+          course_id?: string | null
           created_at?: string
           id?: string
           mentor_id: string
@@ -1055,6 +1057,7 @@ export type Database = {
           url: string
         }
         Update: {
+          course_id?: string | null
           created_at?: string
           id?: string
           mentor_id?: string
@@ -1066,6 +1069,13 @@ export type Database = {
           url?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "resources_course_id_fkey"
+            columns: ["course_id"]
+            isOneToOne: false
+            referencedRelation: "courses"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "resources_mentor_id_fkey"
             columns: ["mentor_id"]
